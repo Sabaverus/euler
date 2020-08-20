@@ -1,0 +1,19 @@
+<div class="wrapper">
+  Корректный ИНН 7830002293 10 символов<br>
+  Корректный ИНН 500100732259 12 символов
+
+  <h4>Введите ИНН</h4>
+
+  <%= form_for @conn, Routes.page_path(@conn, :index), [class: "inn-checksum"], fn f -> %>
+    <%= text_input f, :inn, [placeholder: "ИНН"] %>
+    <%= submit "Отправить", [id: "submit-inn", disabled: false] %>
+  <% end %>
+
+  <div class="content">
+    <ul class="history-list" id="history-list">
+      <li class="list__element valid"><span class="list__element-date">[06.10.1999 24:61]</span> NNNNHHHHHHTT : корректен</li>
+      <li class="list__element invalid"><span class="list__element-date">[06.10.1999 24:61]</span> NNNNHHHHHHTT : некорректен</li>
+    </ul>
+  </div>
+
+</div>
