@@ -2,7 +2,7 @@ defmodule EulerWeb.UserSocket do
   use Phoenix.Socket
 
   ## Channels
-  # channel "room:*", EulerWeb.RoomChannel
+  channel "services", EulerWeb.ServicesChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
