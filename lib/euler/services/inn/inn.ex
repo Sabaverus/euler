@@ -53,7 +53,7 @@ defmodule Euler.Services.Inn do
   defp validate_checksum(numbers, 10) do
     check = inn_control_digit(numbers, @inn_multiplers_10)
 
-    if check != List.last(numbers) ->
+    if check != List.last(numbers) do
       {:error, "неверное контрольное число"}
     else
       {:ok, numbers}
