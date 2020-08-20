@@ -19,5 +19,8 @@
       <li class="list__element invalid"><span class="list__element-date">[06.10.1999 24:61]</span> NNNNHHHHHHTT : некорректен</li>
       %>
     </ul>
+    <script>
+      window.innCheckedList = <%= raw Jason.encode!(@history, [pretty: true]) %>
+    </script>
   </div>
 </div>

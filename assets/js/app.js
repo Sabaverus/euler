@@ -12,3 +12,7 @@ import css from "../css/app.css"
 import "phoenix_html"
 
 import socket from "./socket"
+import InnList from "./inn"
+
+window.innList = new InnList(document.getElementById("history-list"), window.innCheckedList || [])
+window.innList.render()

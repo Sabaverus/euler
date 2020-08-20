@@ -18,7 +18,6 @@ let innCheckForm = document.getElementById("inn-form")
 let innCheckFormInput  = document.getElementById("inn-form-input")
 let innCheckFormSubmit  = document.getElementById("inn-form-submit")
 let innCheckFormMessages  = document.getElementById("inn-form-messages")
-let historyList = document.getElementById("history-list")
 
 let inputHelper = document.querySelectorAll('.inn-input-helper')
 
@@ -41,18 +40,9 @@ innCheckForm.addEventListener("submit", function(e) {
 })
 
 channel.on("services:inn-check", payload => {
-  let messageItem = document.createElement("li")
-  let date = new Date(payload.result.time)
-  if(payload.result.status) {
+  window.innList.push(payload.result)
 
-    messageItem.innerText = `[${formatDate(date)}] ${payload.result.inn} : корректен`
-  } else {
-
-    messageItem.innerText = `[${formatDate(date)}] ${payload.result.inn} : некорректен`
-  }
   innCheckFormSubmit.disabled = false
-
-  historyList.prepend(messageItem)
 })
 
 channel.join()
@@ -67,23 +57,5 @@ inputHelper.forEach(function(v, k) {
     innCheckFormInput.value = e.target.innerText
   })
 })
-
-function formatDate(date) {
-  var d = new Date(date),
-      month = '' + (d.getMonth() + 1),
-      day = '' + d.getDate(),
-      year = d.getFullYear(),
-      hour = d.getHours(),
-      minutes = d.getMinutes();
-
-  if (month.length < 2) 
-    month = '0' + month;
-  if (day.length < 2) 
-    day = '0' + day;
-  if (minutes.length < 2) 
-    minutes = '0' + day;
-
-  return day + '.' + month + '.' + year  + ' ' + hour + ":" + minutes;
-}
 
 export default socket
