@@ -26,6 +26,7 @@ export default class InnList {
         this.data.forEach(el => {
             let li = document.createElement("li")
             let result = el.result ? "корректен" : "некорректен"
+            
             li.innerHTML = `<span>[${this.formatDate(el.time)}]</span> ${el.inn} : ${result}`
 
             content += li.outerHTML

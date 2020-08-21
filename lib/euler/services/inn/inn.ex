@@ -12,7 +12,6 @@ defmodule Euler.Services.Inn do
     [3, 7, 2, 4, 10, 3, 5, 9, 4, 6, 8]
   ]
 
-
   defstruct raw: nil, numeric: nil, digits: [], entry: nil
 
   def checks_history(limit \\ 10) do
@@ -23,24 +22,41 @@ defmodule Euler.Services.Inn do
   end
 
   def validate(inn) do
-    with {:ok, inn, length} <- validate_length(inn),
-         {:ok, parsed} <- parse_numbers(inn),
-         {:ok, _} <- validate_checksum(parsed.digits, length) do
-      {:correct, parsed}
+    with :ok <- validate_length(inn),
+         :ok <- validate_symbols(inn) do
+      :ok
     else
-      {:error, :invalid, error} ->
-        {:invalid, error}
-
-      {:error, :incorrect, error} ->
-        {:incorrect, inn, error}
+      error -> error
     end
   end
 
   defp validate_length(inn) do
     case String.length(inn) do
-      10 -> {:ok, inn, 10}
-      12 -> {:ok, inn, 12}
-      _ -> {:error, :invalid, "ИНН может быть 10 или 12 символов в длину"}
+      10 -> :ok
+      12 -> :ok
+      _ -> {:error, %{type: :invalid, message: "ИНН может быть 10 или 12 символов в длину"}}
+    end
+  end
+
+  defp validate_symbols(inn) do
+    inn
+    |> String.split("", trim: true)
+    |> Enum.filter(fn s ->
+      Integer.parse(s) == :error
+    end)
+    |> case do
+      [] -> :ok
+      _ -> {:error, %{type: :invalid, message: "недопустимые символы в номере ИНН"}}
+    end
+  end
+
+  @spec parse(binary) ::
+          Euler.Services.Inn.t()
+          | {:error, %{message: bitstring(), type: :invalid}}
+  def parse(inn) when is_bitstring(inn) do
+    case validate(inn) do
+      :ok -> parse_numbers(inn)
+      error -> error
     end
   end
 
@@ -53,48 +69,52 @@ defmodule Euler.Services.Inn do
   end
 
   defp parse_numbers([el | chars], list, %__MODULE__{} = inn) do
-    case Integer.parse(el) do
-      {number, _} when number <= 9 ->
-        parse_numbers(chars, [number | list], inn)
-
-      _ ->
-        {:error, :invalid, "недопустимый символ в номере ИНН"}
-    end
+    {number, _} = Integer.parse(el)
+    parse_numbers(chars, [number | list], inn)
   end
 
   defp parse_numbers([], list, %__MODULE__{} = inn) do
-    parsed =
-      inn
-      |> Map.put(:numeric, Integer.parse(inn.raw))
-      |> Map.put(:digits, Enum.reverse(list))
+    {numeric, ""} = Integer.parse(inn.raw)
 
-    {:ok, parsed}
+    inn
+    |> Map.put(:numeric, numeric)
+    |> Map.put(:digits, Enum.reverse(list))
   end
 
-  defp validate_checksum(numbers, 10) do
-    check = inn_control_digit(numbers, @inn_multiplers_10)
+  @spec check(Euler.Services.Inn.t()) ::
+          :ok | {:error, %{message: bitstring(), type: :incorrect}}
+  def check(%__MODULE__{digits: digits}) when length(digits) == 10 do
+    check = inn_control_digit(digits, @inn_multiplers_10)
 
-    if check != List.last(numbers) do
-      {:error, :incorrect, "неверное контрольное число"}
+    if check != List.last(digits) do
+      {:error, %{type: :incorrect, message: "неверное контрольное число"}}
     else
-      {:ok, numbers}
+      :ok
     end
   end
 
-  defp validate_checksum(numbers, 12) do
-    check1 = inn_control_digit(numbers, Enum.at(@inn_multiplers_12, 0))
-    check2 = inn_control_digit(numbers, Enum.at(@inn_multiplers_12, 1))
+  def check(%__MODULE__{digits: digits}) when length(digits) == 12 do
+    check1 = inn_control_digit(digits, Enum.at(@inn_multiplers_12, 0))
+    check2 = inn_control_digit(digits, Enum.at(@inn_multiplers_12, 1))
 
     cond do
-      check1 != Enum.at(numbers, 10) ->
-        {:error, :incorrect, "неверное первое контрольное число"}
+      check1 != Enum.at(digits, 10) ->
+        {:error, %{type: :incorrect, message: "неверное первое контрольное число"}}
 
-      check2 != Enum.at(numbers, 11) ->
-        {:error, :incorrect, "неверное второе контрольное число"}
+      check2 != Enum.at(digits, 11) ->
+        {:error, %{type: :incorrect, message: "неверное второе контрольное число"}}
 
       true ->
-        {:ok, numbers}
+        :ok
     end
+  end
+
+  def check(%__MODULE__{} = _inn) do
+    raise ArgumentError, message: "Incorrect length of inn"
+  end
+
+  def check(_inn) do
+    raise ArgumentError, message: "First argument must be struct of module #{__MODULE__}"
   end
 
   defp inn_control_digit(numbers, multiplers) do

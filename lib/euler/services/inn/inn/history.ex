@@ -1,9 +1,13 @@
 defmodule Euler.Services.Inn.History do
+  @moduledoc """
+
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
   import Ecto.Query, warn: false
 
-  @derive  {Jason.Encoder, only: [:inn, :result, :time]}
+  @derive {Jason.Encoder, only: [:inn, :result, :time]}
 
   schema "inn_check_history" do
     field :inn, :string
@@ -29,6 +33,18 @@ defmodule Euler.Services.Inn.History do
 
   def order_desc(query) do
     order_by(query, desc: :time)
+  end
+
+  @spec push(bitstring(), bitstring(), boolean()) :: {:ok, __MODULE__.t()} | {:error, map()}
+  def push(inn, ip, result) do
+    time = DateTime.utc_now()
+
+    push(%__MODULE__{
+      time: time,
+      inn: inn,
+      ip_address: ip,
+      result: result
+    })
   end
 
   def push(%__MODULE__{} = history) do

@@ -1,4 +1,8 @@
 defmodule EulerWeb.ServicesChannel do
+  @moduledoc """
+
+  """
+
   use Phoenix.Channel
 
   alias Euler.Services.Inn, as: Inn
@@ -9,31 +13,49 @@ defmodule EulerWeb.ServicesChannel do
   end
 
   def handle_in("services:inn-check", %{"inn" => inn}, socket) do
-
-    time = DateTime.utc_now()
-    ip_string =
-      socket.assigns.connect_info.peer_data.address
-      |> :inet.ntoa()
-      |> to_string()
+    ip_string = get_client_ip(socket)
 
     status =
-      case Inn.validate(inn) do
-        {:correct, inn} ->
-          History.push(%History{inn: inn.raw, ip_address: ip_string, time: time, result: true})
-          true
-
-        {:incorrect, inn, _error} ->
-          History.push(%History{inn: inn, ip_address: ip_string, time: time, result: false})
-          false
-
-        {:invalid, _error} ->
-          false
+      with parsed <- Inn.parse(inn),
+           :ok <- Inn.check(parsed) do
+        :ok
+      else
+        error -> error
       end
 
-    broadcast!(socket, "services:inn-check", %{
-      result: %{inn: inn, time: time, result: status}
-    })
+    case status do
+      :ok ->
+        push_history(socket, inn, ip_string, true)
+
+      {:error, %{type: :incorrect}} ->
+        push_history(socket, inn, ip_string, false)
+
+      {:error, _error} ->
+        false
+    end
 
     {:noreply, socket}
+  end
+
+  defp push_history(socket, inn, ip_string, result) do
+    spawn(fn ->
+      case History.push(inn, ip_string, result) do
+        {:ok, %History{time: time}} ->
+          broadcast!(socket, "services:inn-check", %{
+            result: %{inn: inn, time: time, result: result}
+          })
+
+        {:error, _changeset} ->
+          broadcast!(socket, "services:inn-check", %{
+            error: %{message: "Ошибка в работе сервиса"}
+          })
+      end
+    end)
+  end
+
+  defp get_client_ip(socket) do
+    socket.assigns.connect_info.peer_data.address
+    |> :inet.ntoa()
+    |> to_string()
   end
 end
