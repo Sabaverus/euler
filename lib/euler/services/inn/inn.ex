@@ -21,6 +21,7 @@ defmodule Euler.Services.Inn do
     |> DB.all()
   end
 
+  @spec validate(binary) :: :ok | {:error, %{message: bitstring(), type: :invalid}}
   def validate(inn) do
     with :ok <- validate_length(inn),
          :ok <- validate_symbols(inn) do

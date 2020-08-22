@@ -16,7 +16,7 @@ defmodule EulerWeb.ServicesChannel do
     ip_string = get_client_ip(socket)
 
     status =
-      with parsed <- Inn.parse(inn),
+      with %Inn{} = parsed <- Inn.parse(inn),
            :ok <- Inn.check(parsed) do
         :ok
       else
