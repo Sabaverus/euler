@@ -9,6 +9,9 @@ defmodule EulerWeb.ServicesChannel do
   alias Euler.Services.Inn.History, as: History
 
   def join("services", _message, socket) do
+    ip_string = get_client_ip(socket)
+    Phoenix.PubSub.subscribe(Euler.PubSub, "ip:" <> ip_string)
+
     {:ok, socket}
   end
 
@@ -16,10 +19,13 @@ defmodule EulerWeb.ServicesChannel do
     ip_string = get_client_ip(socket)
 
     status =
-      with %Inn{} = parsed <- Inn.parse(inn),
+      with false <- Euler.IpBan.banned?(ip_string),
+           %Inn{} = parsed <- Inn.parse(inn),
            :ok <- Inn.check(parsed) do
         :ok
       else
+        true ->
+          {:error, :banned}
         error -> error
       end
 
@@ -29,6 +35,11 @@ defmodule EulerWeb.ServicesChannel do
 
       {:error, %{type: :incorrect}} ->
         push_history(socket, inn, ip_string, false)
+
+      {:error, :banned} ->
+        broadcast!(socket, "services:inn-check", %{
+          error: %{message: "Ваш IP адрес заблокирован"}
+        })
 
       {:error, _error} ->
         false

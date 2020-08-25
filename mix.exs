@@ -43,7 +43,10 @@ defmodule Euler.MixProject do
       {:gettext, "~> 0.11"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:credo, "~> 1.4", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:redix, ">= 0.0.0"},
+      {:ip, ">= 0.0.0"},
+      {:bitset, ">= 0.0.0"}
     ]
   end
 

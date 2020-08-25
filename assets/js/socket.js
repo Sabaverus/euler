@@ -40,7 +40,11 @@ innCheckForm.addEventListener("submit", function(e) {
 })
 
 channel.on("services:inn-check", payload => {
-  window.innList.push(payload.result)
+  if(payload.error) {
+    innCheckFormMessages.innerText = payload.error.message
+  } else {
+    window.innList.push(payload.result)
+  }
 
   innCheckFormSubmit.disabled = false
 })

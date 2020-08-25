@@ -11,9 +11,11 @@ defmodule Euler.Application do
       # Start the Ecto repository
       Euler.Repo,
       # Start the endpoint when the application starts
-      EulerWeb.Endpoint
+      EulerWeb.Endpoint,
       # Starts a worker by calling: Euler.Worker.start_link(arg)
       # {Euler.Worker, arg},
+      {Redix, host: "localhost", name: :redix},
+      Euler.IpBan
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
