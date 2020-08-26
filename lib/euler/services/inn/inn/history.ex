@@ -49,6 +49,14 @@ defmodule Euler.Services.Inn.History do
     })
   end
 
+  def get(id) do
+    Euler.Repo.get(__MODULE__, id)
+  end
+
+  def delete(history) do
+    Euler.Repo.delete(history)
+  end
+
   def push(%__MODULE__{} = history) do
     Euler.Repo.insert(history)
   end

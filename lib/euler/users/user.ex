@@ -1,4 +1,6 @@
 defmodule Euler.Users.User do
+  @moduledoc false
+
   use Ecto.Schema
   use Pow.Ecto.Schema
 
@@ -33,5 +35,15 @@ defmodule Euler.Users.User do
     |> Enum.find({-1, "Undefined", :undefined}, fn {role_id, _, _} ->
       user.role == role_id
     end)
+  end
+
+  def is_admin?(user) do
+    {_, _, role} = role(user)
+    role == :admin
+  end
+
+  def is_operator?(user) do
+    {_, _, role} = role(user)
+    role == :operator
   end
 end

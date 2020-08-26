@@ -7,12 +7,15 @@
   <h4>Введите ИНН</h4>
 
   <p id="inn-form-messages"></p>
-  <%= form_for @conn, Routes.page_path(@conn, :index), [class: "inn-check", id: "inn-form"], fn f -> %>
-    <%= text_input f, :inn, [type: "number", required: true, placeholder: "ИНН", id: "inn-form-input"] %>
-    <%= submit "Отправить", [id: "inn-form-submit", disabled: false] %>
+  <%= form_for @conn, Routes.page_path(@conn, :index), [class: "input-group", id: "inn-form"], fn f -> %>
+    <%= text_input f, :inn, [type: "number", required: true, placeholder: "ИНН", class: "form-control", id: "inn-form-input"] %>
+    <div class="input-group-append">
+    <%= submit "Отправить", [id: "inn-form-submit", class: "btn  btn-outline-secondary", disabled: false] %>
+    </div>
   <% end %>
 
   <div class="content">
+    <p>Последние 10 проверок</p>
     <ul class="history-list" id="history-list"></ul>
     <script>
       window.innCheckedList = <%= raw Jason.encode!(@history, [pretty: true]) %>

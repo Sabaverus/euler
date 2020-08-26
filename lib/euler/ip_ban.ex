@@ -52,7 +52,7 @@ defmodule Euler.IpBan do
   @max_ip_count 4_294_967_296
   @timer_period 600
 
-  use GenServer, restart: :temporary
+  use GenServer
 
   @type state :: %{
     connection: pid | atom, # Redis connection
@@ -61,7 +61,6 @@ defmodule Euler.IpBan do
   }
 
   def init(_args) do
-
     {:ok, storage} = Redix.command(@redis_server, ["ZRANGE", @ip_list, 0, -1])
 
     {:ok, pubsub} = Redix.PubSub.start_link()
@@ -82,8 +81,10 @@ defmodule Euler.IpBan do
         el = Jason.decode!(json, keys: :atoms)
         if el.time < time_now_unix do
           redis_remove(@redis_server, json)
+          state
         else
-          ban_ip(el.ip, el.time, state)
+          {_, new_state} = ban_ip(el.ip, el.time, state)
+          new_state
         end
       end)
 
@@ -124,7 +125,7 @@ defmodule Euler.IpBan do
 
   @spec remove(String.t()) :: any
   def remove(ip) do
-    GenServer.call(__MODULE__, {:remove, ip})
+    GenServer.cast(__MODULE__, {:remove, ip})
   end
 
   def list(args \\ []) do
@@ -171,6 +172,18 @@ defmodule Euler.IpBan do
     {:noreply, new_state}
   end
 
+  def handle_cast({:remove, ip_raw}, state) do
+
+    {ip, new_state} = remove_ban(ip_raw, state)
+    redis_remove(
+      state.connection,
+      IP.Address.to_integer(ip),
+      IP.Address.to_string(ip)
+    )
+
+    {:noreply, new_state}
+  end
+
   def handle_info({:remove, ip_raw}, state) do
 
     {ip, new_state} = remove_ban(ip_raw, state)
@@ -202,7 +215,11 @@ defmodule Euler.IpBan do
     {:ok, ip} = IP.Address.from_string(ip_raw)
     ban_ip(ip, time_to, state)
   end
-  defp ban_ip(%IP.Address{} = ip, time_to, state) do
+  defp ban_ip(%IP.Address{} = ip, time_to, state) when is_integer(time_to) do
+    {:ok, time} = DateTime.from_unix(time_to)
+    ban_ip(ip, time, state)
+  end
+  defp ban_ip(%IP.Address{} = ip, %DateTime{} = time_to, state) do
 
     ip_numeric = IP.Address.to_integer(ip)
     ip_raw = IP.Address.to_string(ip)

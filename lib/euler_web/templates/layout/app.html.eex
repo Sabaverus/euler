@@ -1,4 +1,6 @@
 <%
+alias Euler.Users.User, as: User
+
 user = Map.get(@conn.assigns, :current_user)
 is_logged = not is_nil(user)
 %>
@@ -15,21 +17,20 @@ is_logged = not is_nil(user)
   </head>
   <body>
     <main role="main" class="container">
-      <header>
-        <a class="logo" href="/"></a>
-        <nav class="navigation">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end">
+        <div class="navbar-nav right">
           <%= unless is_logged do %>
-          <a class="nav-link" href="<%=Routes.pow_session_path(@conn, :new) %>">Sign in</a>
+          <a class="nav-item nav-link" href="<%=Routes.pow_session_path(@conn, :new) %>">Войти</a>
           <% else %>
-          <% {_, role_name, role} = Euler.Users.User.role(user) %>
-          Привет, <span><%= role_name %></span>!
-          <a class="nav-link" href="<%= Routes.panel_path(@conn, :checks)%>">История проверок</a>
-            <% if role == :admin do %>
-            <a class="nav-link" href="<%= Routes.panel_path(@conn, :banned)%>">Список заблокированных</a>
+            <%= if User.is_admin?(user) or User.is_operator?(user) do %>
+              <a class="nav-item nav-link" href="<%= Routes.panel_path(@conn, :checks)%>">История проверок</a>
+              <%= if User.is_admin?(user) do %>
+                <a class="nav-link" href="<%= Routes.panel_path(@conn, :banned)%>">Список заблокированных</a>
+              <% end %>
             <% end %>
           <% end %>
         </nav>
-      </header>
+      </nav>
       <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
       <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
       <%= render @view_module, @view_template, assigns %>

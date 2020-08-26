@@ -25,7 +25,7 @@
                 <td><%= el.ip %></td>
                 <td><%= "#{d.day}.#{d.month}.#{d.year} #{d.hour}:#{minute}" %> GMT</td>
                 <td>
-                    <%= form_for @conn, Routes.panel_path(@conn, :banned_list_action), [], fn _f -> %>
+                    <%= form_for @conn, Routes.panel_path(@conn, :ban_list_action, [class: "input-group"]), [], fn _f -> %>
                         <%= submit "Убрать бан", [value: el.ip, name: "remove", class: "btn btn-sm btn-remove"] %>
                     <% end %>
                 </td>
