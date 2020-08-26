@@ -1,0 +1,49 @@
+<h2>Banned list</h2>
+<div>
+    <%= if length(@banned_list) > 0 do %>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">IP адрес</th>
+                <th scope="col">До</th>
+                <th scope="col">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+        <%= for el <- @banned_list do %>
+            <%
+                {:ok, d} = DateTime.from_unix(el.time)
+                minute =
+                    if d.minute < 10 do
+                        "0" <> to_string(d.minute)
+                    else
+                        d.minute
+                    end
+            %>
+
+            <tr>
+                <td><%= el.ip %></td>
+                <td><%= "#{d.day}.#{d.month}.#{d.year} #{d.hour}:#{minute}" %> GMT</td>
+                <td>
+                    <%= form_for @conn, Routes.panel_path(@conn, :banned_list_action), [], fn f -> %>
+                        <%= submit "Убрать бан", [value: el.ip, name: "remove", class: "btn btn-sm btn-remove"] %>
+                    <% end %>
+                </td>
+            </tr>
+        <% end %>
+        </tbody>
+    </table>
+    <% next_page =
+        if @page == 0 do
+            @page + 2
+        else
+            @page + 1
+        end
+    %>
+    <a href="<%= Routes.panel_path(@conn, :banned)%>">Главная</a> |
+    <a href="<%= Routes.panel_path(@conn, :banned) <> "?page=" <> to_string(next_page)%>">Следующая страница</a>
+    <% else %>
+        <p>Записей не обнаружено</p>
+        <a href="<%= Routes.panel_path(@conn, :banned)%>">Главная</a>
+    <% end %>
+</div>

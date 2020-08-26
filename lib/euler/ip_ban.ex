@@ -122,14 +122,32 @@ defmodule Euler.IpBan do
     GenServer.call(__MODULE__, {:check_ip, ip})
   end
 
+  @spec remove(String.t()) :: any
   def remove(ip) do
     GenServer.call(__MODULE__, {:remove, ip})
   end
 
+  def list(args \\ []) do
+    GenServer.call(__MODULE__, {:list, args})
+  end
+
   ####################
 
-  def handle_call(:list, _from, state) do
-    {:reply, state.list, state}
+  def handle_call({:list, args}, _from, state) do
+
+    from = Keyword.get(args, :from, 0)
+    to = Keyword.get(args, :to, -1)
+
+    {:ok, redis_list} = Redix.command(state.connection, ["ZRANGE", @ip_list, from, to])
+
+    list =
+      redis_list
+      |> Enum.reduce([], fn el, acc ->
+        [Jason.decode!(el, keys: :atoms) | acc]
+      end)
+      |> Enum.reverse()
+
+    {:reply, list, state}
   end
 
   def handle_call({:check_ip, ip_raw}, _from, state) do
@@ -169,6 +187,10 @@ defmodule Euler.IpBan do
     {:noreply, handle_sub(Jason.decode!(payload, keys: :atoms), state)}
   end
 
+  def handle_info(_, state) do
+    # TODO log unexpected messages
+    {:noreply, state}
+  end
 
   ################################
 

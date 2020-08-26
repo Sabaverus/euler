@@ -1,7 +1,5 @@
 defmodule EulerWeb.ServicesChannel do
-  @moduledoc """
-
-  """
+  @moduledoc false
 
   use Phoenix.Channel
 

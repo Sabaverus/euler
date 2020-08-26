@@ -1,7 +1,5 @@
 defmodule Euler.Services.Inn.History do
-  @moduledoc """
-
-  """
+  @moduledoc false
 
   use Ecto.Schema
   import Ecto.Changeset
@@ -29,6 +27,10 @@ defmodule Euler.Services.Inn.History do
 
   def count(query, limit \\ 10) do
     limit(query, ^limit)
+  end
+
+  def limit_offset(query, offset \\ 10) do
+    offset(query, ^offset)
   end
 
   def order_desc(query) do

@@ -18,6 +18,12 @@ defmodule EulerWeb.Router do
 
     get "/", PageController, :index
     post "/", PageController, :inn_check
+
+    get "/panel/checks", PanelController, :checks
+    post "/panel/checks/action", PanelController, :inn_history_action
+
+    get "/panel/banned", PanelController, :banned
+    post "/panel/banned/action", PanelController, :banned_list_action
   end
 
   # Other scopes may use custom stacks.

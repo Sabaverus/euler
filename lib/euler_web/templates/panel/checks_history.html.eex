@@ -1,0 +1,76 @@
+<%
+user = Map.get(@conn.assigns, :user, Euler.Users.User.guest())
+%>
+
+<h2>История проверок ИНН</h2>
+
+<div>
+    <%= if length(@checks_list) > 0 do %>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Время</th>
+                <th scope="col">ИНН</th>
+                <th scope="col">Результат</th>
+                <%= if user.role == :admin do %>
+                    <th scope="col">IP адрес</th>
+                <% end %>
+                <th scope="col">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            <%= for el <- @checks_list do %>
+                <%
+                d = el.time
+                minute =
+                    if d.minute < 10 do
+                        "0" <> to_string(d.minute)
+                    else
+                        d.minute
+                    end
+
+                result =
+                    if el.result do
+                        "корректен"
+                    else
+                        "некорректен"
+                    end
+                %>
+                <tr>
+                    <%#
+                    Для показа даты с таймзоной пользователя необходимо использовать
+                    Js либо хранить таймзону у юзера в бд.
+                    Решение оставлено "на потом"
+                    %>
+                    <td><%= "#{d.day}.#{d.month}.#{d.year} #{d.hour}:#{minute}" %> GMT</td>
+                    <td><%= el.inn %></td>
+                    <td><%= result %></td>
+                    <% if user.role == :admin do %>
+                        <td><%= el.ip %></td>
+                    <% end %>
+                    <td>
+                        <%= form_for @conn, Routes.panel_path(@conn, :inn_history_action), [], fn f -> %>
+                            <%= submit "Удалить", [value: el.id, name: "delete", class: "btn btn-sm btn-delete"] %>
+                            <%= unless user.role == :admin do %>
+                                <%= submit "Бан IP", [value: el.id, name: "ban_ip", class: "btn btn-sm btn-ban"] %>
+                            <% end %>
+                        <% end %>
+                    </td>
+                </tr>
+            <% end %>
+        </tbody>
+    </table>
+    <% next_page =
+        if @page == 0 do
+            @page + 2
+        else
+            @page + 1
+        end
+    %>
+    <a href="<%= Routes.panel_path(@conn, :checks)%>">Главная</a> |
+    <a href="<%= Routes.panel_path(@conn, :checks) <> "?page=" <> to_string(next_page)%>">Следующая страница</a>
+    <% else %>
+        <p>Записей не обнаружено</p>
+        <a href="<%= Routes.panel_path(@conn, :checks)%>">Главная</a>
+    <% end %>
+</div>

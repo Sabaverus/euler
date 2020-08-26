@@ -14,9 +14,10 @@ defmodule Euler.Services.Inn do
 
   defstruct raw: nil, numeric: nil, digits: [], entry: nil
 
-  def checks_history(limit \\ 10) do
+  def checks_history(args \\ []) do
     History
-    |> History.count(limit)
+    |> History.count(Keyword.get(args, :limit, 10))
+    |> History.limit_offset(Keyword.get(args, :offset, 0))
     |> History.order_desc()
     |> DB.all()
   end
