@@ -1,5 +1,7 @@
 <%
-user = Map.get(@conn.assigns, :user, Euler.Users.User.guest())
+alias Euler.Users.User, as: User
+user = Map.get(@conn.assigns, :user, User.guest())
+{_, _, role} = User.role(user)
 %>
 
 <h2>История проверок ИНН</h2>
@@ -12,7 +14,7 @@ user = Map.get(@conn.assigns, :user, Euler.Users.User.guest())
                 <th scope="col">Время</th>
                 <th scope="col">ИНН</th>
                 <th scope="col">Результат</th>
-                <%= if user.role == :admin do %>
+                <%= if role == :admin do %>
                     <th scope="col">IP адрес</th>
                 <% end %>
                 <th scope="col">Действия</th>
@@ -45,13 +47,13 @@ user = Map.get(@conn.assigns, :user, Euler.Users.User.guest())
                     <td><%= "#{d.day}.#{d.month}.#{d.year} #{d.hour}:#{minute}" %> GMT</td>
                     <td><%= el.inn %></td>
                     <td><%= result %></td>
-                    <% if user.role == :admin do %>
+                    <% if role == :admin do %>
                         <td><%= el.ip %></td>
                     <% end %>
                     <td>
-                        <%= form_for @conn, Routes.panel_path(@conn, :inn_history_action), [], fn f -> %>
+                        <%= form_for @conn, Routes.panel_path(@conn, :inn_history_action), [], fn _f -> %>
                             <%= submit "Удалить", [value: el.id, name: "delete", class: "btn btn-sm btn-delete"] %>
-                            <%= unless user.role == :admin do %>
+                            <%= if role == :admin do %>
                                 <%= submit "Бан IP", [value: el.id, name: "ban_ip", class: "btn btn-sm btn-ban"] %>
                             <% end %>
                         <% end %>

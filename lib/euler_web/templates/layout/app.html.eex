@@ -1,6 +1,6 @@
 <%
-user = Map.get(@conn.assigns, :user, Euler.Users.User.guest())
-is_logged = Map.get(@conn.assigns, :logged, false)
+user = Map.get(@conn.assigns, :current_user)
+is_logged = not is_nil(user)
 %>
 
 <!DOCTYPE html>
@@ -19,11 +19,13 @@ is_logged = Map.get(@conn.assigns, :logged, false)
         <a class="logo" href="/"></a>
         <nav class="navigation">
           <%= unless is_logged do %>
-          <a class="nav-link" href="/login">Sign in</a>
-          <% else  %>
-          <a class="nav-link" href="/panel/checks">Checks history</a>
-            <% if user.role == :admin do %>
-            <a class="nav-link" href="/banned">Banned list</a>
+          <a class="nav-link" href="<%=Routes.pow_session_path(@conn, :new) %>">Sign in</a>
+          <% else %>
+          <% {_, role_name, role} = Euler.Users.User.role(user) %>
+          Привет, <span><%= role_name %></span>!
+          <a class="nav-link" href="<%= Routes.panel_path(@conn, :checks)%>">История проверок</a>
+            <% if role == :admin do %>
+            <a class="nav-link" href="<%= Routes.panel_path(@conn, :banned)%>">Список заблокированных</a>
             <% end %>
           <% end %>
         </nav>

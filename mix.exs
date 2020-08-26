@@ -46,7 +46,8 @@ defmodule Euler.MixProject do
       {:credo, "~> 1.4", only: [:dev, :test], runtime: false},
       {:redix, ">= 0.0.0"},
       {:ip, ">= 0.0.0"},
-      {:bitset, ">= 0.0.0"}
+      {:bitset, ">= 0.0.0"},
+      {:pow, "~> 1.0.20"}
     ]
   end
 

@@ -1,5 +1,6 @@
 defmodule EulerWeb.Router do
   use EulerWeb, :router
+  use Pow.Phoenix.Router
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -13,11 +14,26 @@ defmodule EulerWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :protected do
+    plug Pow.Plug.RequireAuthenticated,
+      error_handler: Pow.Phoenix.PlugErrorHandler
+  end
+
+  scope "/" do
+    pipe_through :browser
+
+    pow_routes()
+  end
+
   scope "/", EulerWeb do
     pipe_through :browser
 
     get "/", PageController, :index
     post "/", PageController, :inn_check
+  end
+
+  scope "/", EulerWeb do
+    pipe_through [:browser, :protected]
 
     get "/panel/checks", PanelController, :checks
     post "/panel/checks/action", PanelController, :inn_history_action

@@ -1,1 +1,7 @@
 /* This file is for your main application css. */
+.alert:empty {
+    padding: 0;
+    margin: 0;
+    height: 0;
+    border: 0;
+}

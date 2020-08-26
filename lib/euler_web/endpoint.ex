@@ -42,5 +42,7 @@ defmodule EulerWeb.Endpoint do
     key: "_euler_key",
     signing_salt: "M3pNiSir"
 
+  plug Pow.Plug.Session, otp_app: :euler
+
   plug EulerWeb.Router
 end
