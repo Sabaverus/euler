@@ -17,7 +17,7 @@ defmodule EulerWeb.ServicesChannel do
     ip_string = get_client_ip(socket)
 
     status =
-      with false <- Euler.IpBan.banned?(ip_string),
+      with false <- Euler.BlockList.banned?(ip_string),
            %Inn{} = parsed <- Inn.parse(inn),
            :ok <- Inn.check(parsed) do
         :ok

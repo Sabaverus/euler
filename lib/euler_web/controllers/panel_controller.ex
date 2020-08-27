@@ -13,7 +13,7 @@ defmodule EulerWeb.PanelController do
 
       {page, offset_page} = get_pagination(params)
 
-      banned_list = Euler.IpBan.list(from: offset_page * limit, to: offset_page + limit)
+      banned_list = Euler.BlockList.list(from: offset_page * limit, to: offset_page + limit)
 
       render(conn, "banned_list.html", banned_list: banned_list, page: page)
     else
@@ -44,8 +44,6 @@ defmodule EulerWeb.PanelController do
 
   def inn_history_action(conn, %{"delete" => history_id}) do
     user = Map.get(conn.assigns, :current_user)
-
-    
 
     with true <- User.is_operator?(user) or User.is_admin?(user),
          {id, _} <- Integer.parse(history_id),
@@ -95,7 +93,7 @@ defmodule EulerWeb.PanelController do
 
     with {period_seconds, _} <- Integer.parse(period),
          true <- User.is_admin?(user) do
-      :ok = Euler.IpBan.ban(ip, DateTime.utc_now() |> DateTime.add(period_seconds, :second))
+      :ok = Euler.BlockList.ban(ip, DateTime.utc_now() |> DateTime.add(period_seconds, :second))
 
       conn
       |> put_flash(:info, "IP #{ip} was banned")
@@ -116,7 +114,7 @@ defmodule EulerWeb.PanelController do
   def ban_list_action(conn, %{"remove" => ip}) do
     user = Map.get(conn.assigns, :current_user)
 
-    with :ok <- Euler.IpBan.remove(ip),
+    with :ok <- Euler.BlockList.remove(ip),
          true <- User.is_admin?(user) do
       conn
       |> put_flash(:info, "IP #{ip} ban was removed")

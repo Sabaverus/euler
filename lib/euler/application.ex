@@ -15,7 +15,7 @@ defmodule Euler.Application do
       # Starts a worker by calling: Euler.Worker.start_link(arg)
       # {Euler.Worker, arg},
       {Redix, host: "localhost", name: :redix},
-      Euler.IpBan
+      Euler.BlockList
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -1,4 +1,4 @@
-defmodule Euler.IpBan do
+defmodule Euler.BlockList do
   @moduledoc """
   Модуль реализующий список заблокированных адресов
   Основная концепция заключается в том, что модуль выступает в роли
@@ -9,7 +9,7 @@ defmodule Euler.IpBan do
   ### Использование модуля
   #### Добавление в список блокировки `ban/2`
 
-      iex> Euler.IpBan.ban("1.1.1.1", DateTime.utc_now() |> DateTime.add(1, :hour))
+      iex> Euler.BlockList.ban("1.1.1.1", DateTime.utc_now() |> DateTime.add(60 * 60, :second))
       :ok
 
   Принцип работы:
@@ -21,9 +21,9 @@ defmodule Euler.IpBan do
 
   #### Проверка блокировки адреса `banned?/1`
 
-      iex> Euler.IpBan.ban("1.1.1.1", DateTime.utc_now() |> DateTime.add(1, :hour))
+      iex> Euler.BlockList.ban("1.1.1.1", DateTime.utc_now() |> DateTime.add(60 * 60, :second))
       :ok
-      iex> Euler.IpBan.banned?("1.1.1.1")
+      iex> Euler.BlockList.banned?("1.1.1.1")
       true
 
   Принцип работы:
@@ -31,7 +31,7 @@ defmodule Euler.IpBan do
 
   #### Удаление блокировки адреса `remove/1`
 
-      iex> Euler.IpBan.remove("1.1.1.1")
+      iex> Euler.BlockList.remove("1.1.1.1")
       :ok
 
   Принцип работы:
@@ -112,10 +112,10 @@ defmodule Euler.IpBan do
 
     Push given IP to Redis banned ip collection
 
-        iex> ban({127, 0, 0, 1}, DateTime.utc_now() |> DateTime.add(30, :second))
+        iex> Euler.BlockList.ban({127, 0, 0, 1}, DateTime.utc_now() |> DateTime.add(30, :second))
         :ok
 
-        iex> ban("127.0.0.1", DateTime.utc_now() |> DateTime.add(30, :second))
+        iex> Euler.BlockList.ban("127.0.0.1", DateTime.utc_now() |> DateTime.add(30, :second))
         :ok
   """
   def ban(ip, time_to) do
@@ -126,7 +126,7 @@ defmodule Euler.IpBan do
   @doc """
     Checks for flag IP banned or not
 
-        iex> banned?("127.0.0.1")
+        iex> Euler.BlockList.banned?("127.0.0.1")
         false
   """
   def banned?(ip) do
@@ -137,7 +137,7 @@ defmodule Euler.IpBan do
   @doc """
   Adds async task to remove fiven IP address from banned list
 
-      iex> remove("127.0.0.1")
+      iex> Euler.BlockList.remove("127.0.0.1")
       :ok
   """
   def remove(ip) do
@@ -148,8 +148,8 @@ defmodule Euler.IpBan do
   @doc """
   Returns actual banned list from redis storage
 
-      iex> list()
-      [%{"127.0.0.1", 718588800}, ...]
+      iex> Euler.BlockList.list()
+      []
 
   Can accept parameters `:from` and `:to` to define left and right border of range selection
   """

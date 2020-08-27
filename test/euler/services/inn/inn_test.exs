@@ -1,4 +1,4 @@
-defmodule EulerWeb.PageControllerTest do
+defmodule EulerWeb.InnServiceTest do
   use Euler.DataCase
 
   alias Euler.Services.Inn, as: Inn
