@@ -17,17 +17,19 @@ is_logged = not is_nil(user)
   </head>
   <body>
     <main role="main" class="container">
-      <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-end">
+      <nav class="navbar navbar-expand-lg navbar-light bg-light justify-content-between">
+        <a class="nav-item nav-link" href="/">Главная</a>
+
         <div class="navbar-nav right">
-          <%= unless is_logged do %>
-          <a class="nav-item nav-link" href="<%=Routes.pow_session_path(@conn, :new) %>">Войти</a>
-          <% else %>
+          <%= if is_logged do %>
             <%= if User.is_admin?(user) or User.is_operator?(user) do %>
               <a class="nav-item nav-link" href="<%= Routes.panel_path(@conn, :checks)%>">История проверок</a>
               <%= if User.is_admin?(user) do %>
                 <a class="nav-link" href="<%= Routes.panel_path(@conn, :banned)%>">Список заблокированных</a>
               <% end %>
             <% end %>
+          <% else %>
+            <a class="nav-item nav-link" href="<%=Routes.pow_session_path(@conn, :new) %>">Войти</a>
           <% end %>
         </nav>
       </nav>

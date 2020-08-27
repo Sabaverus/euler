@@ -24,9 +24,9 @@ defmodule Euler.Users.User do
 
   def roles() do
     [
-      {1, "Администратор", :admin},
-      {2, "Оператор", :operator},
-      {3, "Пользователь", :common}
+      {1, "Admin", :admin},
+      {2, "Operator", :operator},
+      {3, "User", :common}
     ]
   end
 

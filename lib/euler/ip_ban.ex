@@ -40,25 +40,31 @@ defmodule Euler.IpBan do
     * Отправляется оповещение в pubsub топик Redis о том, что адрес был разблокирован
     * Отменяются локальные таймеры на оповещение того, что блокировка закончилась
 
+  TODO: Make supervisor tree over this server and redix/redix.pubsub server
   """
 
-  #
   @redis_server :redix
   @pubsub :redix_pubsub
 
   @service_channel "ban_list"
   @ip_list "ban_list"
 
+  # Max IP entries
   @max_ip_count 4_294_967_296
-  @timer_period 600
+
+  # Ban entries will not start timers for automatic remove if their ban-time highest than this value
+  @timer_period 60 * 60 * 24
 
   use GenServer
 
   @type state :: %{
-    connection: pid | atom, # Redis connection
-    pubsub: pid, # Redis pubsub
-    list: Bitset.t() # local storage of banned ip's presented as bitset
-  }
+          # Redis connection
+          connection: pid | atom,
+          # Redis pubsub
+          pubsub: pid,
+          # local storage of banned ip's presented as bitset
+          list: Bitset.t()
+        }
 
   def init(_args) do
     {:ok, storage} = Redix.command(@redis_server, ["ZRANGE", @ip_list, 0, -1])
@@ -78,7 +84,8 @@ defmodule Euler.IpBan do
     # Загружается список забаненых адресов
     initializated =
       Enum.reduce(storage, state, fn json, state ->
-        el = Jason.decode!(json, keys: :atoms)
+        el = decode_ban_entry(json)
+
         if el.time < time_now_unix do
           redis_remove(@redis_server, json)
           state
@@ -99,14 +106,17 @@ defmodule Euler.IpBan do
     )
   end
 
-  @spec ban({integer, integer, integer, integer}, DateTime.t) :: :ok
+  @spec ban({integer, integer, integer, integer} | String.t(), DateTime.t()) :: :ok
   @doc """
     Accepts IPv4 address as tuple and time_to as DateTime
 
     Push given IP to Redis banned ip collection
 
-    iex> Euler.IpBan.ban({127,0,0,1}, DateTime.utc_now() |> DateTime.add(30, :second))
-    :ok
+        iex> ban({127, 0, 0, 1}, DateTime.utc_now() |> DateTime.add(30, :second))
+        :ok
+
+        iex> ban("127.0.0.1", DateTime.utc_now() |> DateTime.add(30, :second))
+        :ok
   """
   def ban(ip, time_to) do
     GenServer.cast(__MODULE__, {:ban, ip, time_to})
@@ -116,18 +126,33 @@ defmodule Euler.IpBan do
   @doc """
     Checks for flag IP banned or not
 
-        iex> Euler.IpBan.banned?("127.0.0.1")
+        iex> banned?("127.0.0.1")
         false
   """
   def banned?(ip) do
     GenServer.call(__MODULE__, {:check_ip, ip})
   end
 
-  @spec remove(String.t()) :: any
+  @spec remove(String.t()) :: :ok
+  @doc """
+  Adds async task to remove fiven IP address from banned list
+
+      iex> remove("127.0.0.1")
+      :ok
+  """
   def remove(ip) do
     GenServer.cast(__MODULE__, {:remove, ip})
   end
 
+  @spec list(Keyword.t()) :: []
+  @doc """
+  Returns actual banned list from redis storage
+
+      iex> list()
+      [%{"127.0.0.1", 718588800}, ...]
+
+  Can accept parameters `:from` and `:to` to define left and right border of range selection
+  """
   def list(args \\ []) do
     GenServer.call(__MODULE__, {:list, args})
   end
@@ -135,7 +160,6 @@ defmodule Euler.IpBan do
   ####################
 
   def handle_call({:list, args}, _from, state) do
-
     from = Keyword.get(args, :from, 0)
     to = Keyword.get(args, :to, -1)
 
@@ -144,7 +168,7 @@ defmodule Euler.IpBan do
     list =
       redis_list
       |> Enum.reduce([], fn el, acc ->
-        [Jason.decode!(el, keys: :atoms) | acc]
+        [decode_ban_entry(el) | acc]
       end)
       |> Enum.reverse()
 
@@ -160,12 +184,13 @@ defmodule Euler.IpBan do
 
   # TODO non tuple pattern matching
   def handle_cast({:ban, ip, time_to}, state) do
-
     {ip_address, new_state} = ban_ip(ip, time_to, state)
+
     {:ok, _} =
       redis_add(
         state.connection,
-        IP.Address.to_integer(ip_address), # Score
+        # Score
+        IP.Address.to_integer(ip_address),
         Jason.encode!(%{ip: IP.Address.to_string(ip_address), time: DateTime.to_unix(time_to)})
       )
 
@@ -173,8 +198,8 @@ defmodule Euler.IpBan do
   end
 
   def handle_cast({:remove, ip_raw}, state) do
-
     {ip, new_state} = remove_ban(ip_raw, state)
+
     redis_remove(
       state.connection,
       IP.Address.to_integer(ip),
@@ -185,8 +210,8 @@ defmodule Euler.IpBan do
   end
 
   def handle_info({:remove, ip_raw}, state) do
-
     {ip, new_state} = remove_ban(ip_raw, state)
+
     redis_remove(
       state.connection,
       IP.Address.to_integer(ip),
@@ -196,8 +221,11 @@ defmodule Euler.IpBan do
     {:noreply, new_state}
   end
 
-  def handle_info({:redix_pubsub, _from, _ref, :message, %{channel: @service_channel, payload: payload}}, state) do
-    {:noreply, handle_sub(Jason.decode!(payload, keys: :atoms), state)}
+  def handle_info(
+        {:redix_pubsub, _from, _ref, :message, %{channel: @service_channel, payload: payload}},
+        state
+      ) do
+    {:noreply, handle_sub(decode_ban_entry(payload), state)}
   end
 
   def handle_info(_, state) do
@@ -211,16 +239,19 @@ defmodule Euler.IpBan do
     {:ok, ip} = IP.Address.from_binary(<<p1, p2, p3, p4>>)
     ban_ip(ip, time_to, state)
   end
+
   defp ban_ip(ip_raw, time_to, state) when is_binary(ip_raw) do
     {:ok, ip} = IP.Address.from_string(ip_raw)
     ban_ip(ip, time_to, state)
   end
+
   defp ban_ip(%IP.Address{} = ip, time_to, state) when is_integer(time_to) do
     {:ok, time} = DateTime.from_unix(time_to)
     ban_ip(ip, time, state)
   end
-  defp ban_ip(%IP.Address{} = ip, %DateTime{} = time_to, state) do
 
+  # TODO ban request of exising IP address adds as new entry. Update existing entry?
+  defp ban_ip(%IP.Address{} = ip, %DateTime{} = time_to, state) do
     ip_numeric = IP.Address.to_integer(ip)
     ip_raw = IP.Address.to_string(ip)
 
@@ -229,14 +260,18 @@ defmodule Euler.IpBan do
     # Caching ip addredd as banned
     new_list = Bitset.set(state.list, ip_numeric)
 
-    # If remaining time is smaller what timer_period start timer
     new_timers =
       if diff <= @timer_period do
         # Update timer if exists
         if Map.has_key?(state.timers, ip_numeric) do
           Process.cancel_timer(Map.get(state.timers, ip_numeric))
         end
-        Map.put(state.timers, ip_numeric, Process.send_after(__MODULE__, {:remove, ip_raw}, diff * 1000))
+
+        Map.put(
+          state.timers,
+          ip_numeric,
+          Process.send_after(__MODULE__, {:remove, ip_raw}, diff * 1000)
+        )
       else
         state.timers
       end
@@ -253,8 +288,8 @@ defmodule Euler.IpBan do
     {:ok, ip} = IP.Address.from_string(ip_raw)
     remove_ban(ip, state)
   end
-  defp remove_ban(%IP.Address{} = ip, state) do
 
+  defp remove_ban(%IP.Address{} = ip, state) do
     ip_numeric = IP.Address.to_integer(ip)
 
     new_timers =
@@ -279,11 +314,14 @@ defmodule Euler.IpBan do
     {_ip, new_state} = ban_ip(ip_raw, time_to, state)
     new_state
   end
+
   defp handle_sub(%{type: "removed", data: %{ip: ip_raw}}, state) do
     {_ip, new_state} = remove_ban(ip_raw, state)
     new_state
   end
+
   defp handle_sub(_, state) do
+    # TODO log unhandled messages from pubsub redix topic
     state
   end
 
@@ -318,7 +356,12 @@ defmodule Euler.IpBan do
     )
   end
 
-  # Копия функции test? из модуля Bitset с исправленной проверкой бита
+  # Returns decoded term of redis ban list entry
+  defp decode_ban_entry(entry) when is_bitstring(entry) do
+    Jason.decode!(entry, keys: :atoms)
+  end
+
+  # Function copy test? from module Bitset with fixed bit check
   defp is_address_banned?(%{data: data}, pos) do
     <<_prefix::size(pos), bit::size(1), _rest::bits>> = data
     bit == 1

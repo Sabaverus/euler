@@ -40,7 +40,7 @@ defmodule EulerWeb.Router do
 
     get "/panel/banned", PanelController, :banned
 
-    post "ban_list", PanelController, :ban_list_action
+    post "/ban_list", PanelController, :ban_list_action
   end
 
   # Other scopes may use custom stacks.

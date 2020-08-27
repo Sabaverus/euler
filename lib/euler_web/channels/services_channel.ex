@@ -24,7 +24,9 @@ defmodule EulerWeb.ServicesChannel do
       else
         true ->
           {:error, :banned}
-        error -> error
+
+        error ->
+          error
       end
 
     case status do
@@ -36,7 +38,7 @@ defmodule EulerWeb.ServicesChannel do
 
       {:error, :banned} ->
         broadcast!(socket, "services:inn-check", %{
-          error: %{message: "Ваш IP адрес заблокирован"}
+          error: %{message: "Your IP address is blocked"}
         })
 
       {:error, _error} ->
@@ -55,8 +57,9 @@ defmodule EulerWeb.ServicesChannel do
           })
 
         {:error, _changeset} ->
+          # TODO log error
           broadcast!(socket, "services:inn-check", %{
-            error: %{message: "Ошибка в работе сервиса"}
+            error: %{message: "Error happened, please try again later"}
           })
       end
     end)
